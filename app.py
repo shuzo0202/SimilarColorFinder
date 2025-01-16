@@ -87,11 +87,11 @@ def ciede2000(lab1, lab2, k_L=1, k_C=1, k_H=1):
     R_T = -np.sin(2 * np.radians(delta_theta)) * R_C
 
     delta_E = np.sqrt(
-        (k_L * delta_L / S_L)**2
-        + (k_C * delta_C_prime / S_C)**2
-        + (k_H * delta_H_prime / S_H)**2
-        + R_T * (k_C * delta_C_prime / S_C) * (k_H * delta_H_prime / S_H)
-    )
+    (delta_L / (k_L * S_L))**2
+    + (delta_C_prime / (k_C * S_C))**2
+    + (delta_H_prime / (k_H * S_H))**2
+    + R_T * (delta_C_prime / (k_C * S_C)) * (delta_H_prime / (k_H * S_H))
+)
     return delta_E
 
 # アプリケーションのレイアウト
@@ -135,7 +135,7 @@ if uploaded_file:
                 st.sidebar.write(f"選択された Lab 値: {selected_lab}")
 
         # KL 値としきい値の調整
-        k_l = st.sidebar.slider("KL (明度の重み)", 0.1, 5.0, 1.0, 0.1)
+        k_l = st.sidebar.slider("KL (明度の重み、値が小さいほど重みが増す)", 0.01, 3.0, 1.0, 0.01)
         threshold = st.sidebar.slider("色差のしきい値", 0.1, 20.0, 5.0, 0.1)
 
         # カラーピッカーと Lab 値入力
