@@ -158,6 +158,24 @@ if uploaded_file:
         input_b = st.sidebar.slider("b 値", -128.0, 128.0, selected_lab[2] if selected_lab is not None else round(lab_from_picker[2], 2), 0.1)
         user_lab = [input_l, input_a, input_b]
 
+       # ユーザーが入力したLab値に基づくSL, SC, SHの計算
+        L_ = user_lab[0]
+        C_ = np.sqrt(user_lab[1]**2 + user_lab[2]**2)
+        S_L = 1 + ((0.015 * (L_ - 50) ** 2) / np.sqrt(20 + (L_ - 50) ** 2))
+        S_C = 1 + 0.045 * C_
+        h_ = np.degrees(np.arctan2(user_lab[2], user_lab[1])) % 360
+        T = (
+            1
+            - 0.17 * np.cos(np.radians(h_ - 30))
+            + 0.24 * np.cos(np.radians(2 * h_))
+            + 0.32 * np.cos(np.radians(3 * h_ + 6))
+            - 0.20 * np.cos(np.radians(4 * h_ - 63))
+        )
+        S_H = 1 + 0.015 * C_ * T
+
+        st.sidebar.write(f"重価係数 SL={S_L:.2f}, SC={S_C:.2f}, Sh={S_H:.2f}  \n1に近づくほどしきい値が厳しくなります。  \nSL=明度方向　SC=彩度方向　Sh=色相方向")
+
+
         # ユーザー入力のカラーチップ
         st.sidebar.subheader("入力された色のカラーチップ")
         user_rgb = lab_to_rgb_with_gamma(user_lab)
