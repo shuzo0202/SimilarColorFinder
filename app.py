@@ -1,4 +1,5 @@
 import streamlit as st
+st.set_page_config(layout="wide")
 import pandas as pd
 import numpy as np
 from colour import Lab_to_XYZ, XYZ_to_RGB, RGB_to_XYZ, XYZ_to_Lab, RGB_COLOURSPACES
@@ -143,7 +144,7 @@ if uploaded_file:
                     ) == selected_row
                 ][0]
                 selected_lab = filtered_data.loc[selected_index, ["L", "a", "b"]].values
-                st.sidebar.write(f"選択された Lab 値: {selected_lab}")
+                st.sidebar.write(f"選択された Lab 値: L={round(selected_lab[0], 2)}, a={round(selected_lab[1], 2)}, b={round(selected_lab[2], 2)}")
 
         # カラーピッカーと Lab 値入力
         st.sidebar.subheader("Lab 値を指定")
