@@ -1,15 +1,15 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from colour import Lab_to_XYZ, XYZ_to_RGB, RGB_COLOURSPACES, RGB_to_XYZ, XYZ_to_Lab
+from colour import Lab_to_XYZ, XYZ_to_RGB, RGB_to_XYZ, XYZ_to_Lab, RGB_COLOURSPACES
 
 # CSV ファイルの読み込み
 @st.cache_data
 def load_data(file):
     return pd.read_csv(file)
 
-# Lab → RGB 変換
-def lab_to_rgb(lab):
+# Lab → RGB 変換（ガンマ補正付き）
+def lab_to_rgb_with_gamma(lab):
     xyz = Lab_to_XYZ(lab)
     rgb = XYZ_to_RGB(
         xyz,
@@ -18,7 +18,16 @@ def lab_to_rgb(lab):
         chromatic_adaptation_transform="Bradford",
         colourspace=RGB_COLOURSPACES["sRGB"],
     )
-    return tuple(max(0, min(255, int(x * 255))) for x in rgb)
+
+    def apply_gamma(x):
+        if x <= 0.0031308:
+            return x * 12.92
+        else:
+            return 1.055 * (x ** (1 / 2.4)) - 0.055
+
+    rgb_gamma_corrected = tuple(apply_gamma(max(0, min(1, x))) for x in rgb)
+    rgb_scaled = tuple(max(0, min(255, int(round(x * 255)))) for x in rgb_gamma_corrected)
+    return rgb_scaled
 
 # RGB → Lab 変換
 def rgb_to_lab(rgb):
@@ -30,7 +39,8 @@ def rgb_to_lab(rgb):
         chromatic_adaptation_transform="Bradford",
         colourspace=RGB_COLOURSPACES["sRGB"],
     )
-    return XYZ_to_Lab(xyz)
+    lab = XYZ_to_Lab(xyz)
+    return lab
 
 # 独自の CIEDE2000 計算関数
 def ciede2000(lab1, lab2, k_L=1, k_C=1, k_H=1):
@@ -100,6 +110,7 @@ st.sidebar.header("設定")
 
 # CSV ファイルのアップロード
 uploaded_file = st.sidebar.file_uploader("CSVファイルをアップロード", type=["csv"])
+st.sidebar.divider()
 if uploaded_file:
     data = load_data(uploaded_file)
 
@@ -134,10 +145,6 @@ if uploaded_file:
                 selected_lab = filtered_data.loc[selected_index, ["L", "a", "b"]].values
                 st.sidebar.write(f"選択された Lab 値: {selected_lab}")
 
-        # KL 値としきい値の調整
-        k_l = st.sidebar.slider("KL (明度の重み、値が小さいほど重みが増す)", 0.01, 3.0, 1.0, 0.01)
-        threshold = st.sidebar.slider("色差のしきい値", 0.1, 20.0, 5.0, 0.1)
-
         # カラーピッカーと Lab 値入力
         st.sidebar.subheader("Lab 値を指定")
         st.sidebar.write("カラーピッカーで色を選択")
@@ -152,13 +159,20 @@ if uploaded_file:
 
         # ユーザー入力のカラーチップ
         st.sidebar.subheader("入力された色のカラーチップ")
-        user_rgb = lab_to_rgb(user_lab)
+        user_rgb = lab_to_rgb_with_gamma(user_lab)
         user_color = f"rgb{user_rgb}"
         st.sidebar.markdown(
             f"<div style='width:50px; height:50px; background-color:{user_color};'></div>",
             unsafe_allow_html=True,
         )
 
+        st.sidebar.divider()
+
+        # KL 値としきい値の調整
+        st.sidebar.subheader("しきい値の調整")
+        k_l = st.sidebar.slider("KL (明度の重み、値が小さいほど重みが増す)", 0.01, 3.0, 1.0, 0.01)
+        threshold = st.sidebar.slider("色差のしきい値", 0.1, 20.0, 5.0, 0.1)
+        
         # 色差計算
         st.subheader("検索結果")
         results = []
@@ -169,7 +183,7 @@ if uploaded_file:
                 delta_l = round(color_lab[0] - user_lab[0], 2)
                 delta_a = round(color_lab[1] - user_lab[1], 2)
                 delta_b = round(color_lab[2] - user_lab[2], 2)
-                color_rgb = lab_to_rgb(color_lab)
+                color_rgb = lab_to_rgb_with_gamma(color_lab)
                 results.append((
                     f"<div style='width:20px; height:20px; background-color:rgb{color_rgb};'></div>",
                     row["収録MS"],
