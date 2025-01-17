@@ -1,5 +1,5 @@
 import streamlit as st
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide", page_title="色差計算検証アプリ")
 import pandas as pd
 import numpy as np
 from colour import Lab_to_XYZ, XYZ_to_RGB, RGB_to_XYZ, XYZ_to_Lab, RGB_COLOURSPACES
